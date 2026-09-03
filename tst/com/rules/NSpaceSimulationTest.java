@@ -123,8 +123,8 @@ class NSpaceSimulationTest {
     void commonsRegeneratesConsumesAndNeverBecomesNegative() {
         NSpaceSimulation simulation = simulation(
             List.of(
-                agent(0, 0.0, 0.0, 0.0, 0, 8.0),
-                agent(1, 0.5, 0.0, 0.0, 0, 8.0)
+                agent(0, 0.0, 0.0, 0.0, 0, 8.0, 1.0),
+                agent(1, 0.5, 0.0, 0.0, 0, 8.0, 1.0)
             ),
             parameters(10.0),
             5.0

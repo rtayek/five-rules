@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.SplittableRandom;
 
 import com.rules.LlmBehaviorSimulation.LlmProfile;
 import com.rules.LlmBehaviorSimulation.LlmTickMetrics;
@@ -214,10 +215,12 @@ public class SimulationExperimentRunner {
         long seed
     ) {
         NSpaceSimulation field = connectedStaticField(6, seed);
+        SplittableRandom population = new SplittableRandom(seed ^ 0x4f1bbcdcL);
         Map<Integer, LlmProfile> profiles = new LinkedHashMap<>();
         for (int id = 0; id < 6; id++) {
+            double persona = id + population.nextDouble(-0.5, 0.5);
             profiles.put(id, profile(
-                id,
+                persona,
                 id % 2 == 0 ? -1.0 : 1.0,
                 personaDriftRate,
                 0.01,
@@ -243,9 +246,11 @@ public class SimulationExperimentRunner {
         long seed
     ) {
         NSpaceSimulation field = connectedStaticField(6, seed);
+        SplittableRandom population = new SplittableRandom(seed ^ 0x6c8e9cf5L);
         Map<Integer, LlmProfile> profiles = new LinkedHashMap<>();
         for (int id = 0; id < 6; id++) {
-            double evidence = id % 2 == 0 ? -1.0 : 1.0;
+            double evidence = (id % 2 == 0 ? -1.0 : 1.0)
+                + population.nextDouble(-0.35, 0.35);
             profiles.put(id, profile(
                 id,
                 evidence,
@@ -287,9 +292,11 @@ public class SimulationExperimentRunner {
             ));
         }
         int surpriseTick = Math.max(2, ticks / 2);
+        double surprise = -8.0 + new SplittableRandom(seed ^ 0x13a5ba1dL)
+            .nextDouble(-2.0, 2.0);
         ObservationSchedule observations = tick -> observations(
             agents,
-            tick == surpriseTick ? -8.0 : 1.0,
+            tick == surpriseTick ? surprise : 1.0,
             1.0
         );
         return scenario(

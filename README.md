@@ -53,6 +53,27 @@ Or open the same experiment set as a native Swing dashboard:
 ./gradlew viewExperiments
 ```
 
+Test robustness across 100 paired seeds and inspect the effect distribution:
+
+```sh
+./gradlew runSweeps
+./gradlew viewSweeps
+```
+
+The sweep prints the mean expected-direction treatment effect, its sample
+standard deviation, a normal-approximation 95% confidence interval, observed
+range, and count of positive effects. The persona, evidence, and surprise
+inputs receive small seeded perturbations; treatment and control always share
+the same realization. This makes the comparisons paired while preserving the
+single-seed reproducibility guarantee. The raw sweep data is written to
+`build/reports/five-rules/seed-sweep.csv`.
+
+Override the sweep size or seed range with Gradle properties:
+
+```sh
+./gradlew viewSweeps -Pseeds=250 -PfirstSeed=1000 -Pticks=60
+```
+
 The default run uses seed `42` for 40 ticks and writes both the raw data and a
 self-contained visual report:
 

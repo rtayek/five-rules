@@ -132,7 +132,8 @@ public final class SimulationExperimentViewer {
             this.minimum = rawMinimum;
             this.maximum = rawMaximum + (rawMaximum - rawMinimum) * 0.08;
             setPreferredSize(new Dimension(500, 320));
-            setBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor")));
+            Color border = UIManager.getColor("Separator.foreground");
+            setBorder(BorderFactory.createLineBorder(border == null ? Color.GRAY : border));
             setToolTipText("");
         }
 

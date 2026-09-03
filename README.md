@@ -47,21 +47,31 @@ Run all five paired treatment/control experiments:
 ./gradlew runExperiments
 ```
 
-The default run uses seed `42` for 40 ticks and writes:
+Or open the same experiment set as a native Swing dashboard:
+
+```sh
+./gradlew viewExperiments
+```
+
+The default run uses seed `42` for 40 ticks and writes both the raw data and a
+self-contained visual report:
 
 ```text
 build/reports/five-rules/experiments.csv
+build/reports/five-rules/experiments.html
 ```
 
 Override those values with Gradle properties:
 
 ```sh
-./gradlew runExperiments -Pticks=100 -Pseed=7 -Poutput=results.csv
+./gradlew runExperiments -Pticks=100 -Pseed=7 \
+    -Poutput=results.csv -Preport=results.html
 ```
 
 The experiment pairs cover persona drift, sycophancy, recency response to a
 surprising observation, stagnant mirror-loop termination, and the combined
-five-rule spatial field. CSV output contains one row per scenario tick.
+five-rule spatial field. Open the HTML report in a browser to compare each
+treatment/control trajectory; CSV output remains available for further analysis.
 
 Build and test:
 

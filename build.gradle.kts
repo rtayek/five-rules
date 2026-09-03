@@ -46,6 +46,21 @@ tasks.register<JavaExec>("runExperiments") {
         "--output", providers.gradleProperty("output").getOrElse(
             layout.buildDirectory.file("reports/five-rules/experiments.csv")
                 .get().asFile.absolutePath
+        ),
+        "--report", providers.gradleProperty("report").getOrElse(
+            layout.buildDirectory.file("reports/five-rules/experiments.html")
+                .get().asFile.absolutePath
         )
+    )
+}
+
+tasks.register<JavaExec>("viewExperiments") {
+    group = "application"
+    description = "Opens a native Swing treatment/control experiment dashboard."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.rules.SimulationExperimentViewer")
+    args(
+        "--ticks", providers.gradleProperty("ticks").getOrElse("40"),
+        "--seed", providers.gradleProperty("seed").getOrElse("42")
     )
 }

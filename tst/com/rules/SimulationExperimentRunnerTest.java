@@ -86,6 +86,35 @@ class SimulationExperimentRunnerTest {
         }
     }
 
+    @Test
+    void writesSelfContainedVisualReport() throws IOException {
+        List<ExperimentRow> rows = new SimulationExperimentRunner().runAll(4, SEED);
+        Path output = Files.createTempFile("five-rules-experiments-", ".html");
+        try {
+            new ExperimentHtmlReport().write(output, rows);
+            String html = Files.readString(output);
+
+            assertTrue(html.contains("<svg"));
+            assertTrue(html.contains("Persona drift"));
+            assertTrue(html.contains("Sycophancy"));
+            assertTrue(html.contains("Recency response"));
+            assertTrue(html.contains("Mirror-loop termination"));
+            assertTrue(html.contains("Shared commons"));
+            assertTrue(html.contains("Control"));
+            assertTrue(html.contains("Treatment"));
+            assertTrue(!html.contains("<script"));
+        } finally {
+            Files.deleteIfExists(output);
+        }
+    }
+
+    @Test
+    void createsOneSwingChartForEachExperiment() {
+        List<ExperimentRow> rows = new SimulationExperimentRunner().runAll(4, SEED);
+
+        assertEquals(5, SimulationExperimentViewer.createDashboard(rows).getComponentCount());
+    }
+
     private static ExperimentRow finalRow(
         List<ExperimentRow> rows,
         String experiment,

@@ -27,6 +27,12 @@ public class SimulationExperimentRunner {
         "five-rules",
         "experiments.csv"
     );
+    public static final Path DEFAULT_REPORT = Path.of(
+        "build",
+        "reports",
+        "five-rules",
+        "experiments.html"
+    );
 
     public static record ExperimentRow(
         String experiment,
@@ -51,9 +57,10 @@ public class SimulationExperimentRunner {
         Map<Integer, Observation> atTick(int tick);
     }
 
-    private static record Options(Path output, int ticks, long seed) {
+    private static record Options(Path output, Path report, int ticks, long seed) {
         static Options parse(String[] arguments) {
             Path output = DEFAULT_OUTPUT;
+            Path report = DEFAULT_REPORT;
             int ticks = DEFAULT_TICKS;
             long seed = DEFAULT_SEED;
             for (int index = 0; index < arguments.length; index += 2) {
@@ -64,6 +71,7 @@ public class SimulationExperimentRunner {
                 String value = arguments[index + 1];
                 switch (option) {
                     case "--output" -> output = Path.of(value);
+                    case "--report" -> report = Path.of(value);
                     case "--ticks" -> ticks = Integer.parseInt(value);
                     case "--seed" -> seed = Long.parseLong(value);
                     default -> throw new IllegalArgumentException("unknown option: " + option);
@@ -72,7 +80,7 @@ public class SimulationExperimentRunner {
             if (ticks <= 0) {
                 throw new IllegalArgumentException("ticks must be positive");
             }
-            return new Options(output, ticks, seed);
+            return new Options(output, report, ticks, seed);
         }
     }
 
@@ -81,11 +89,16 @@ public class SimulationExperimentRunner {
         SimulationExperimentRunner runner = new SimulationExperimentRunner();
         List<ExperimentRow> rows = runner.runAll(options.ticks(), options.seed());
         runner.writeCsv(options.output(), rows);
+        new ExperimentHtmlReport().write(options.report(), rows);
         System.out.printf(
             "Wrote %,d rows from %d scenarios to %s%n",
             rows.size(),
             scenarioCount(rows),
             options.output().toAbsolutePath()
+        );
+        System.out.printf(
+            "Wrote visual report to %s%n",
+            options.report().toAbsolutePath()
         );
         printFinalComparisons(rows);
     }

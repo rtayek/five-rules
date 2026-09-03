@@ -41,6 +41,28 @@ The combined metrics keep semantic field movement distinct from persona drift,
 persona diversity, belief deviation from evidence, memory updates, and stagnant
 interaction termination.
 
+Run all five paired treatment/control experiments:
+
+```sh
+./gradlew runExperiments
+```
+
+The default run uses seed `42` for 40 ticks and writes:
+
+```text
+build/reports/five-rules/experiments.csv
+```
+
+Override those values with Gradle properties:
+
+```sh
+./gradlew runExperiments -Pticks=100 -Pseed=7 -Poutput=results.csv
+```
+
+The experiment pairs cover persona drift, sycophancy, recency response to a
+surprising observation, stagnant mirror-loop termination, and the combined
+five-rule spatial field. CSV output contains one row per scenario tick.
+
 Build and test:
 
 ```sh

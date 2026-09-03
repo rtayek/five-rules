@@ -34,3 +34,18 @@ dependencies {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }
+
+tasks.register<JavaExec>("runExperiments") {
+    group = "application"
+    description = "Runs deterministic treatment/control experiments and writes CSV metrics."
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.rules.SimulationExperimentRunner")
+    args(
+        "--ticks", providers.gradleProperty("ticks").getOrElse("40"),
+        "--seed", providers.gradleProperty("seed").getOrElse("42"),
+        "--output", providers.gradleProperty("output").getOrElse(
+            layout.buildDirectory.file("reports/five-rules/experiments.csv")
+                .get().asFile.absolutePath
+        )
+    )
+}

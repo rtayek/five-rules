@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import com.rules.LlmBehaviorSimulation.LlmProfile;
 import com.rules.LlmBehaviorSimulation.LlmTickMetrics;
 import com.rules.LlmBehaviorSimulation.LoopParameters;
+import com.rules.LlmBehaviorSimulation.Observation;
 import com.rules.NSpaceSimulation.Agent;
 import com.rules.NSpaceSimulation.Parameters;
 
@@ -102,6 +103,31 @@ class LlmBehaviorSimulationTest {
     }
 
     @Test
+    void observationInjectionUsesMemoryRetention() {
+        LlmBehaviorSimulation simulation = twoAgentSimulation(
+            profile(0.0, 0.0, 0.0, 0.0, 0.0, 0.75),
+            profile(1.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+        );
+
+        LlmTickMetrics metrics = simulation.calculateTick(Map.of(
+            0,
+            new Observation(new double[] {10.0}, 1.0)
+        ));
+
+        assertArrayEquals(
+            new double[] {2.5},
+            simulation.getStates().get(0).memory(),
+            TOLERANCE
+        );
+        assertArrayEquals(
+            new double[] {2.5},
+            simulation.getStates().get(0).currentBelief(),
+            TOLERANCE
+        );
+        assertTrue(metrics.meanMemoryUpdate() > 0.0);
+    }
+
+    @Test
     void sycophancyMovesBeliefTowardPeerDespiteConflictingEvidence() {
         LlmBehaviorSimulation simulation = twoAgentSimulation(
             profile(0.0, 0.0, 0.0, 0.0, 1.0, 0.0),
@@ -116,6 +142,7 @@ class LlmBehaviorSimulationTest {
             TOLERANCE
         );
         assertTrue(metrics.meanEvidenceDeviation() > 0.0);
+        assertTrue(metrics.beliefDispersion() < 10.0);
     }
 
     @Test
@@ -188,6 +215,29 @@ class LlmBehaviorSimulationTest {
                 0.0,
                 1.0
             )))
+        );
+    }
+
+    @Test
+    void observationsMustMatchKnownAgentsAndBeliefDimensions() {
+        LlmBehaviorSimulation simulation = twoAgentSimulation(
+            profile(0.0, 0.0, 0.0, 0.0, 0.0, 1.0),
+            profile(1.0, 1.0, 0.0, 0.0, 0.0, 1.0)
+        );
+
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> simulation.calculateTick(Map.of(
+                99,
+                new Observation(new double[] {1.0}, 1.0)
+            ))
+        );
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> simulation.calculateTick(Map.of(
+                0,
+                new Observation(new double[] {1.0, 2.0}, 1.0)
+            ))
         );
     }
 

@@ -114,11 +114,24 @@ public class LlmBehaviorSimulation {
         int stagnantTicks
     ) {}
 
+    public static record Observation(double[] value, double influence) {
+        public Observation {
+            value = copiedVector(value, "value");
+            requireUnitInterval(influence, "influence");
+        }
+
+        @Override
+        public double[] value() {
+            return Arrays.copyOf(value, value.length);
+        }
+    }
+
     public static record LlmTickMetrics(
         TickMetrics fieldMetrics,
         double meanPersonaDrift,
         double personaDispersion,
         double meanEvidenceDeviation,
+        double beliefDispersion,
         double meanMemoryUpdate,
         int activeInteractions,
         int terminatedLoops,
@@ -159,6 +172,11 @@ public class LlmBehaviorSimulation {
     }
 
     public LlmTickMetrics calculateTick() {
+        return calculateTick(Map.of());
+    }
+
+    public LlmTickMetrics calculateTick(Map<Integer, Observation> observations) {
+        validateObservations(observations);
         TickMetrics fieldMetrics = socialField.calculateTick();
         List<Connection> activeConnections = activeConnections();
         Map<Integer, List<Integer>> neighborIdsByAgent = neighborsByAgent(activeConnections);
@@ -170,7 +188,13 @@ public class LlmBehaviorSimulation {
             LlmProfile profile = profiles.get(agentId);
             LlmState previous = previousStates.get(agentId);
             List<Integer> neighborIds = neighborIdsByAgent.getOrDefault(agentId, List.of());
-            LlmState next = updateState(profile, previous, neighborIds, previousStates);
+            LlmState next = updateState(
+                profile,
+                previous,
+                neighborIds,
+                previousStates,
+                observations.get(agentId)
+            );
             nextStates.put(agentId, next);
             totalMemoryUpdate += distance(previous.memory, next.memory);
         }
@@ -290,7 +314,8 @@ public class LlmBehaviorSimulation {
         LlmProfile profile,
         LlmState previous,
         List<Integer> neighborIds,
-        Map<Integer, LlmState> previousStates
+        Map<Integer, LlmState> previousStates,
+        Observation observation
     ) {
         double[] personaAfterPeers = previous.currentPersona;
         double[] nextMemory = previous.memory;
@@ -314,6 +339,16 @@ public class LlmBehaviorSimulation {
                 profile.sycophancyRate()
             );
         }
+        if (observation != null) {
+            double observationRate = (1.0 - profile.memoryRetention())
+                * observation.influence();
+            nextMemory = interpolate(nextMemory, observation.value, observationRate);
+            beliefAfterPeers = interpolate(
+                beliefAfterPeers,
+                nextMemory,
+                observation.influence()
+            );
+        }
         double[] nextPersona = interpolate(
             personaAfterPeers,
             profile.personaAnchor,
@@ -325,6 +360,25 @@ public class LlmBehaviorSimulation {
             profile.evidenceStrength()
         );
         return new LlmState(nextPersona, nextBelief, nextMemory);
+    }
+
+    private void validateObservations(Map<Integer, Observation> observations) {
+        Objects.requireNonNull(observations, "observations");
+        for (Map.Entry<Integer, Observation> entry : observations.entrySet()) {
+            LlmProfile profile = profiles.get(entry.getKey());
+            if (profile == null) {
+                throw new IllegalArgumentException("observation has an unknown agent id");
+            }
+            Observation observation = Objects.requireNonNull(
+                entry.getValue(),
+                "observation"
+            );
+            if (observation.value.length != profile.initialBelief.length) {
+                throw new IllegalArgumentException(
+                    "observation and belief must have equal dimensions"
+                );
+            }
+        }
     }
 
     private double[] meanVector(
@@ -449,6 +503,7 @@ public class LlmBehaviorSimulation {
             personaDrift / profiles.size(),
             personaDispersion(),
             evidenceDeviation / profiles.size(),
+            beliefDispersion(),
             meanMemoryUpdate,
             activeInteractions,
             terminatedThisTick,
@@ -457,18 +512,28 @@ public class LlmBehaviorSimulation {
     }
 
     private double personaDispersion() {
-        if (states.size() < 2) {
+        List<double[]> personas = states.values().stream()
+            .map(state -> state.currentPersona)
+            .toList();
+        return meanPairwiseDistance(personas);
+    }
+
+    private double beliefDispersion() {
+        List<double[]> beliefs = states.values().stream()
+            .map(state -> state.currentBelief)
+            .toList();
+        return meanPairwiseDistance(beliefs);
+    }
+
+    private static double meanPairwiseDistance(List<double[]> vectors) {
+        if (vectors.size() < 2) {
             return 0.0;
         }
-        List<LlmState> stateList = List.copyOf(states.values());
         double totalDistance = 0.0;
         int pairs = 0;
-        for (int left = 0; left < stateList.size(); left++) {
-            for (int right = left + 1; right < stateList.size(); right++) {
-                totalDistance += distance(
-                    stateList.get(left).currentPersona,
-                    stateList.get(right).currentPersona
-                );
+        for (int left = 0; left < vectors.size(); left++) {
+            for (int right = left + 1; right < vectors.size(); right++) {
+                totalDistance += distance(vectors.get(left), vectors.get(right));
                 pairs++;
             }
         }
